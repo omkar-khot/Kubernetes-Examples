@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps-prod
+  labels:
+    environment: production
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: sample-api-route
+  namespace: apps-prod
+spec:
+  parentRefs:
+    - name: prod-gateway
+      namespace: gateway-system
+      sectionName: https-prod
+  hostnames:
+    - "api.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: sample-api
+          port: 80
+          weight: 90
+        - name: sample-api-v2
+          port: 80
+          weight: 10
