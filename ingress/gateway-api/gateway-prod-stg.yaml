@@ -1,0 +1,59 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: prod-gateway-class
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  description: "Production traffic gateway class"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: prod-gateway
+  namespace: gateway-system
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  gatewayClassName: prod-gateway-class
+  listeners:
+    - name: http-redirect
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https-prod
+      protocol: HTTPS
+      port: 443
+      hostname: "api.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: prod-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              environment: production
+    - name: https-staging
+      protocol: HTTPS
+      port: 443
+      hostname: "staging.api.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: stg-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              environment: staging
